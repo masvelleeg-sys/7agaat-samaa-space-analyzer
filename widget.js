@@ -296,6 +296,7 @@
             '</div>' +
           '</div>' +
           '<div class="info-tip"><span style="font-size:1.2rem;flex-shrink:0">💡</span><p>اختار نوع الغرفة والأبعاد (إذا أردت)، ثم صوّر غرفتك ليقوم الذكاء الاصطناعي بتحليل الأبعاد واقتراح الأثاث المناسب!</p></div>' +
+          '<div class="aibadge"><span>🤖</span><span>Gemini AI نشط – تحليل حقيقي ✓</span></div>' +
         '</div>' +
 
         /* Step 2 */
@@ -325,9 +326,7 @@
             '<button id="hjflipbt" onclick="hjFlipCam()" title="قلب الكاميرا"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg></button>' +
             '<button id="hjshubt" onclick="hjCapturePhoto()"><div class="so"></div><div class="si"></div></button>' +
           '</div>' +
-          '<div id="hjpcinfo" style="display:none; width:100%; margin-top:8px;">' +
-            '<button onclick="hjGoNext()" class="bp" style="width:100%; background:linear-gradient(135deg,var(--hj-red),#7a0000); box-shadow:0 0 15px rgba(255,0,0,0.4); margin-bottom: 8px;">🔍 ابدأ تحليل المكان بالذكاء الاصطناعي</button>' +
-          '</div>' +
+          '<div id="hjpcinfo"><strong>✅ الصورة جاهزة</strong> – اضغط <strong>تحليل المكان</strong> دلوقتي</div>' +
         '</div>' +
 
         /* Step 3 */
@@ -559,10 +558,6 @@
       document.getElementById('hjcacts').style.display = 'none';
       document.getElementById('hjpcinfo').style.display = 'block';
       hjCaptured = true; document.getElementById('hjbnext').disabled = false;
-      setTimeout(function () {
-        var wb = document.querySelector('#hjsaw-w .wb');
-        if (wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
-      }, 120);
     };
     r.readAsDataURL(f);
   };
@@ -584,10 +579,6 @@
     document.getElementById('hjpcinfo').style.display = 'block';
     hjCaptured = true; document.getElementById('hjbnext').disabled = false;
     hjCamOK = false; if (hjRaf) { cancelAnimationFrame(hjRaf); hjRaf = null; } hjStopCam();
-    setTimeout(function () {
-      var wb = document.querySelector('#hjsaw-w .wb');
-      if (wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
-    }, 120);
   };
   window.hjRetakePhoto = function () {
     hjCaptured = false; hjDataURL = null;
