@@ -811,6 +811,10 @@ function handleUpload(ev){
     document.getElementById('cacts').style.display='none';
     document.getElementById('pcinfo').style.display='block';
     captured=true;document.getElementById('bnext').disabled=false;
+    setTimeout(function(){
+      var wb=document.querySelector('.wb');
+      if(wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
+    }, 120);
   };
   r.readAsDataURL(f);
 }
@@ -833,6 +837,10 @@ function capturePhoto(){
   document.getElementById('pcinfo').style.display='block';
   captured=true;document.getElementById('bnext').disabled=false;
   camOK=false;if(raf){cancelAnimationFrame(raf);raf=null;}stopCam();
+  setTimeout(function(){
+    var wb=document.querySelector('.wb');
+    if(wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
+  }, 120);
 }
 function retakePhoto(){
   captured=false;dataURL=null;
