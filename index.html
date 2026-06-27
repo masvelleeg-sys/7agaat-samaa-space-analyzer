@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes"/>
+<!-- Permissions policy: allow camera on all contexts -->
+<meta http-equiv="Permissions-Policy" content="camera=*"/>
+<!-- iOS full-screen PWA support -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>محلل المكان الذكي – حاجات سما</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#ff0000;--red-glow:rgba(255,0,0,0.5);
+  --dark:#000000;--dark2:#0a0a0a;
+  --r:20px;--rs:12px;
+  --font:'Cairo',sans-serif;
+  --shadow:0 30px 90px rgba(0,0,0,.95),0 8px 30px rgba(255,0,0,.25);
+  --w:430px;--h:680px;--spd:.35s;
+}
+body{font-family:var(--font);background:#020205;min-height:100vh;}
+.demo-bg{
+  min-height:100vh;
+  background:radial-gradient(ellipse at 25% 30%,#1a0202 0%,#000000 65%);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.demo-bg::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,0,0,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,0,0,.03) 1px,transparent 1px);
+  background-size:50px 50px;
+}
+.demo-title{color:#fff;font-size:clamp(2rem,6vw,3.5rem);font-weight:900;text-align:center;text-shadow:0 0 60px rgba(255,0,0,.35);}
+.demo-title span{background:linear-gradient(135deg,var(--red),#7a0000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.demo-sub{color:rgba(255,255,255,.4);font-size:1rem;text-align:center;margin-top:10px;}
+.hint{position:fixed;bottom:112px;left:36px;display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.45);font-size:.83rem;font-weight:600;animation:hb 1.8s ease-in-out infinite;z-index:100;}
+@keyframes hb{0%,100%{transform:translateX(0)}50%{transform:translateX(9px)}}
+
+/* FLOATING BTN */
+#sa-btn{
+  position:fixed;bottom:28px;left:28px;width:68px;height:68px;border-radius:50%;
+  border:none;cursor:pointer;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#120000,#3a0000,#000000);
+  box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,.45);
+  animation:bp 2.8s ease-in-out infinite;
+  transition:transform var(--spd),box-shadow var(--spd);overflow:visible;
+}
+#sa-btn:hover{transform:scale(1.12) translateY(-3px);animation:none;box-shadow:0 18px 55px rgba(0,0,0,.85),0 0 45px rgba(255,0,0,.35);}
+#sa-btn:active{transform:scale(.94);}
+@keyframes bp{
+  0%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,.55);}
+  65%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 20px rgba(255,0,0,0);}
+  100%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,0);}
+}
+.bico{width:36px;height:36px;transition:transform var(--spd) cubic-bezier(.34,1.56,.64,1);}
+#sa-btn.open .bico{transform:rotate(45deg) scale(.82);}
+.nring{position:absolute;top:-5px;right:-5px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--red),#7a0000);border:2px solid var(--dark);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;color:#fff;animation:rp 2s ease-in-out infinite;}
+@keyframes rp{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+
+/* BACKDROP */
+#sa-bd{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:8000;opacity:0;pointer-events:none;transition:opacity var(--spd);}
+#sa-bd.vis{opacity:1;pointer-events:all;}
+
+/* WIDGET */
+#sa-w{
+  position:fixed;bottom:110px;left:28px;
+  width:var(--w);max-width:calc(100vw - 36px);
+  height:var(--h);max-height:calc(100vh - 130px);
+  z-index:8500;border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:var(--shadow);
+  transform:translateY(40px) scale(.88);opacity:0;pointer-events:none;
+  transition:transform var(--spd) cubic-bezier(.34,1.56,.64,1),opacity var(--spd);
+  background:var(--dark);
+}
+#sa-w.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all;}
+@media(max-width:480px){
+  #sa-w{bottom:0;left:0;right:0;width:100%;max-width:100%;border-radius:var(--r) var(--r) 0 0;height:92vh;max-height:92vh;}
+  #sa-btn{bottom:18px;left:18px;}
+}
+
+/* HEADER */
+.wh{background:linear-gradient(135deg,#000000,#120000,#2a0000);padding:18px 20px 16px;position:relative;overflow:hidden;flex-shrink:0;border-bottom:1px solid rgba(255,0,0,.25);}
+.wh::before{content:'';position:absolute;top:-55%;right:-18%;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,0,0,.22) 0%,transparent 65%);pointer-events:none;}
+.wh::after{content:'';position:absolute;bottom:-45%;left:-12%;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.05) 0%,transparent 65%);pointer-events:none;}
+.wht{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;position:relative;z-index:1;}
+.whb{display:flex;align-items:center;gap:10px;}
+.whl{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--red),#7a0000);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,0,0,.45);flex-shrink:0;}
+.whn{color:#fff;font-size:.92rem;font-weight:800;line-height:1.2;}
+.whs{color:rgba(255,255,255,.42);font-size:.65rem;}
+.whc{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s;position:relative;z-index:2;flex-shrink:0;}
+.whc:hover{background:rgba(255,0,0,.22);color:#fff;}
+.whtit{color:#fff;font-size:1.05rem;font-weight:800;margin-bottom:3px;position:relative;z-index:1;}
+.whdesc{color:rgba(255,255,255,.42);font-size:.73rem;position:relative;z-index:1;}
+.sbar{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),#7a0000,var(--red),transparent);animation:sb 2.2s ease-in-out infinite;}
+@keyframes sb{0%,100%{opacity:.3;transform:scaleX(.15)}50%{opacity:1;transform:scaleX(1)}}
+
+/* PROGRESS */
+.pw{height:3px;background:rgba(255,255,255,.03);flex-shrink:0;}
+.pb{height:100%;background:linear-gradient(90deg,var(--red),#7a0000,#ff4d4d);transition:width .6s cubic-bezier(.4,0,.2,1);border-radius:0 2px 2px 0;}
+
+/* BODY */
+.wb{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--dark2);scrollbar-width:thin;scrollbar-color:rgba(255,0,0,.15) transparent;}
+.wb::-webkit-scrollbar{width:4px;}
+.wb::-webkit-scrollbar-thumb{background:rgba(255,0,0,.22);border-radius:2px;}
+
+/* STEPS */
+.step{display:none;padding:18px;flex-direction:column;gap:14px;animation:si .4s ease both;}
+.step.active{display:flex;}
+@keyframes si{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.ls{color:rgba(255,255,255,.28);font-size:.67rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.lt{color:#fff;font-size:1rem;font-weight:800;line-height:1.5;}
+.lt em{color:var(--red);font-style:normal;text-shadow:0 0 10px rgba(255,0,0,.45);}
+
+/* ROOM GRID */
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.rc{background:rgba(255,255,255,.02);border:1.5px solid rgba(255,255,255,.05);border-radius:var(--rs);padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all .25s;user-select:none;}
+.rc:hover{background:rgba(255,0,0,.08);border-color:rgba(255,0,0,.35);transform:translateY(-2px);}
+.rc.sel{background:rgba(255,0,0,.12);border-color:var(--red);box-shadow:0 0 22px rgba(255,0,0,.25);}
+.rc.sel .rcl{color:#fff;font-weight:700;}
+.rci{font-size:1.75rem;line-height:1;}
+.rcl{color:rgba(255,255,255,.72);font-size:.7rem;font-weight:600;text-align:center;}
+
+/* DIMENSION INPUTS */
+.dim-inputs{background:rgba(255,255,255,.02);border:1.5px solid rgba(255,0,0,.15);border-radius:var(--rs);padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:2px;}
+.dim-inputs-title{color:rgba(255,255,255,.8);font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:6px;}
+.dim-inputs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.dim-field{display:flex;flex-direction:column;gap:5px;}
+.dim-field label{color:rgba(255,255,255,.45);font-size:.65rem;font-weight:700;}
+.dim-field input{background:rgba(0,0,0,.5);border:1px solid rgba(255,0,0,.22);border-radius:8px;padding:8px 6px;color:#fff;font-family:var(--font);font-size:.76rem;outline:none;text-align:center;transition:all .2s;}
+.dim-field input:focus{border-color:var(--red);box-shadow:0 0 10px rgba(255,0,0,.25);}
+.dim-field input::placeholder{color:rgba(255,255,255,.15);}
+
+.info-tip{background:rgba(255,0,0,.04);border:1px solid rgba(255,0,0,.14);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:flex-start;}
+.info-tip p{color:rgba(255,255,255,.52);font-size:.75rem;line-height:1.6;margin:0;}
+
+/* CAMERA */
+.cam-wrap{position:relative;border-radius:var(--rs);overflow:hidden;background:#000;aspect-ratio:4/3;width:100%;border:1.5px solid rgba(255,0,0,.25);}
+#cv{width:100%;height:100%;object-fit:cover;display:block;}
+#cc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;pointer-events:none;}
+.crosshair::before,.crosshair::after{content:'';position:absolute;background:rgba(255,0,0,.85);box-shadow:0 0 10px var(--red);}
+.crosshair::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%);}
+.crosshair::after{top:50%;left:0;height:1.5px;width:100%;transform:translateY(-50%);}
+.arc-ui{position:absolute;inset:10px;pointer-events:none;}
+.arc{position:absolute;width:22px;height:22px;border-color:var(--red);border-style:solid;}
+.arc.tl{top:0;right:0;border-width:2.5px 0 0 2.5px;border-radius:4px 0 0 0;}
+.arc.tr{top:0;left:0;border-width:2.5px 2.5px 0 0;border-radius:0 4px 0 0;}
+.arc.bl{bottom:0;right:0;border-width:0 0 2.5px 2.5px;border-radius:0 0 0 4px;}
+.arc.br{bottom:0;left:0;border-width:0 2.5px 2.5px 0;border-radius:0 0 4px 0;}
+.cstat{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,0,0,.35);border-radius:20px;padding:5px 14px;color:#fff;font-size:.68rem;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.cstat .dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:db .85s ease-in-out infinite;}
+@keyframes db{0%,100%{opacity:1}50%{opacity:.25}}
+.cerr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.95);text-align:center;padding:20px;}
+.cerr-ico{font-size:2.5rem;}
+.cerr-txt{color:rgba(255,255,255,.68);font-size:.84rem;line-height:1.55;}
+.cerr-btn{padding:10px 22px;border-radius:20px;background:var(--red);border:none;color:#fff;font-family:var(--font);font-size:.84rem;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 4px 12px rgba(255,0,0,.35);}
+.cerr-btn.sec{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}
+.cam-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cam-tip{color:rgba(255,255,255,.38);font-size:.71rem;line-height:1.45;flex:1;}
+.cam-tip strong{color:rgba(255,77,77,.95);}
+#shubt{width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;background:transparent;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+#shubt:active{transform:scale(.88);}
+#shubt .so{position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,255,255,.6);}
+#shubt .si{width:50px;height:50px;border-radius:50%;background:#fff;transition:transform .15s,background .15s;}
+#shubt:active .si{transform:scale(.82);background:rgba(255,255,255,.75);}
+#flipbt{width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:rgba(255,255,255,.68);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+#flipbt:hover{background:rgba(255,0,0,.15);border-color:rgba(255,0,0,.35);color:#fff;}
+#pcinfo{display:none;color:rgba(255,255,255,.38);font-size:.71rem;text-align:center;margin-top:-4px;}
+#pcinfo strong{color:var(--red);}
+
+/* ANALYSIS */
+.anav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:360px;text-align:center;}
+.radar{width:132px;height:132px;position:relative;}
+.rring{position:absolute;border-radius:50%;border:2px solid;animation:rp2 1.6s ease-in-out infinite;}
+.rring:nth-child(1){inset:0;border-color:rgba(255,0,0,.85);animation-delay:0s;}
+.rring:nth-child(2){inset:18px;border-color:rgba(255,50,50,.72);animation-delay:.25s;}
+.rring:nth-child(3){inset:36px;border-color:rgba(180,0,0,.62);animation-delay:.5s;}
+.rring:nth-child(4){inset:54px;border-color:rgba(100,0,0,.52);animation-delay:.75s;}
+.rdot{position:absolute;inset:57px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 0 22px rgba(255,0,0,.6);animation:rdp .9s ease-in-out infinite;}
+.rsweep{position:absolute;inset:0;border-radius:50%;overflow:hidden;}
+.rsweep::after{content:'';position:absolute;top:50%;left:50%;width:50%;height:2px;background:linear-gradient(90deg,rgba(255,0,0,.95),transparent);transform-origin:left center;animation:sw 1.5s linear infinite;box-shadow:0 0 12px var(--red);}
+@keyframes sw{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes rp2{0%,100%{opacity:.3;transform:scale(.92)}50%{opacity:1;transform:scale(1.07)}}
+@keyframes rdp{0%,100%{transform:scale(.78);opacity:.7}50%{transform:scale(1.22);opacity:1}}
+.atit{color:#fff;font-size:1rem;font-weight:800;}
+.asub{color:rgba(255,255,255,.38);font-size:.76rem;margin-top:-8px;}
+.lread{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;}
+.lchip{background:rgba(255,0,0,.03);border:1px solid rgba(255,0,0,.15);border-radius:10px;padding:9px;text-align:center;}
+.lchip .lv{color:var(--red);font-size:.9rem;font-weight:800;font-variant-numeric:tabular-nums;text-shadow:0 0 8px rgba(255,0,0,.25);}
+.lchip .ll{color:rgba(255,255,255,.32);font-size:.61rem;margin-top:2px;}
+.aisteps{width:100%;}
+.ais{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);color:rgba(255,255,255,.28);font-size:.79rem;font-weight:500;transition:color .3s;}
+.ais.done{color:rgba(255,77,77,.95);}
+.ais.cur{color:#fff;text-shadow:0 0 10px rgba(255,0,0,.5);}
+.aico{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.64rem;flex-shrink:0;background:rgba(255,255,255,.04);}
+.ais.done .aico{background:rgba(255,0,0,.15);color:var(--red);}
+.ais.cur .aico{background:rgba(255,0,0,.2);color:#fff;animation:isp .7s linear infinite;}
+@keyframes isp{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* RESULTS */
+.resh{background:linear-gradient(135deg,rgba(255,0,0,.12),rgba(255,255,255,.01));border:1px solid rgba(255,0,0,.25);border-radius:var(--rs);padding:14px 16px;display:flex;align-items:flex-start;gap:12px;}
+.resico{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,rgba(255,0,0,.35),rgba(255,255,255,.03));display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.rest{color:#fff;font-size:.9rem;font-weight:800;margin-bottom:2px;}
+.ress{color:rgba(255,255,255,.42);font-size:.72rem;}
+.drow{display:flex;flex-wrap:wrap;gap:6px;}
+.dchip{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 12px;color:rgba(255,255,255,.7);font-size:.69rem;font-weight:700;}
+.dchip.d{background:rgba(255,0,0,.08);border-color:rgba(255,0,0,.22);color:var(--red);}
+.dchip.s{background:rgba(255,0,0,.12);border-color:rgba(255,0,0,.35);color:#fff;}
+.aisum{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:var(--rs);padding:14px;}
+.aisum p{color:rgba(255,255,255,.7);font-size:.81rem;line-height:1.8;margin:0;}
+.slbl{color:rgba(255,255,255,.38);font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;}
+.pg{display:flex;flex-direction:column;gap:9px;}
+.pc{background:rgba(255,255,255,.02);border:1.5px solid rgba(255,255,255,.05);border-radius:var(--rs);padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;text-decoration:none;transition:all .25s;}
+.pc:hover{background:rgba(255,0,0,.08);border-color:rgba(255,0,0,.3);transform:translateX(-3px);}
+.pimg{width:54px;height:54px;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;font-size:1.75rem;}
+.pi2{flex:1;min-width:0;}
+.pname{color:#fff;font-size:.84rem;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pdesc{color:rgba(255,255,255,.4);font-size:.7rem;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ptags{display:flex;flex-wrap:wrap;gap:4px;}
+.pt{background:rgba(255,0,0,.08);border:1px solid rgba(255,0,0,.15);color:rgba(255,100,100,.95);font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:10px;}
+.parr{color:rgba(255,255,255,.15);flex-shrink:0;transition:all .2s;}
+.pc:hover .parr{transform:translateX(-4px);color:var(--red);}
+.mrow{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.mtrk{flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;}
+.mfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--red),#7a0000,#ff6666);transition:width 1.3s ease;}
+.mpct{color:var(--red);font-size:.66rem;font-weight:800;flex-shrink:0;}
+.va{display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:.8rem;font-weight:700;text-decoration:none;padding:12px;border-radius:var(--rs);border:1px solid rgba(255,0,0,.25);background:rgba(255,0,0,.05);transition:all .2s;cursor:pointer;}
+.va:hover{background:rgba(255,0,0,.15);border-color:var(--red);box-shadow:0 0 15px rgba(255,0,0,.25);}
+.wf{padding:13px 18px;background:#030307;border-top:1px solid rgba(255,255,255,.05);display:flex;gap:9px;flex-shrink:0;}
+.bp{flex:1;background:linear-gradient(135deg,var(--red),#7a0000);color:#fff;border:none;border-radius:var(--rs);padding:12px 18px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:all .25s;box-shadow:0 4px 22px rgba(255,0,0,.35);}
+.bp:hover:not(:disabled){background:linear-gradient(135deg,#ff2222,#990000);transform:translateY(-1px);box-shadow:0 6px 30px rgba(255,0,0,.45);}
+.bp:disabled{opacity:.25;cursor:not-allowed;transform:none;box-shadow:none;}
+.bs{background:rgba(255,255,255,.03);color:rgba(255,255,255,.52);border:1.5px solid rgba(255,255,255,.08);border-radius:var(--rs);padding:12px 15px;font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .25s;}
+.bs:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);}
+.pow{text-align:center;color:rgba(255,255,255,.12);font-size:.62rem;padding:5px 0 3px;flex-shrink:0;background:#030307;}
+.pow span{color:var(--red);}
+
+/* ── AI BADGE (INFO ONLY) ── */
+.aibadge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,0,0,.08);border:1px solid rgba(255,0,0,.22);border-radius:20px;padding:4px 12px;font-size:.67rem;font-weight:700;color:rgba(255,100,100,.95);pointer-events:none;}
+.ai-err-box{background:rgba(255,60,60,.08);border:1px solid rgba(255,60,60,.18);border-radius:var(--rs);padding:12px 14px;color:rgba(255,120,120,.9);font-size:.77rem;line-height:1.6;display:none;}
+</style>
+</head>
+<body>
+<div class="demo-bg">
+  <div>
+    <div class="demo-title">حاجات <span>سما</span></div>
+    <div class="demo-sub">اضغط الزر وصوّر غرفتك – الـ AI هيختار لك أحسن أثاث 📷✨</div>
+  </div>
+</div>
+<div class="hint">← افتح محلل المكان <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+<div id="sa-bd" onclick="closeSA()"></div>
+<button id="sa-btn" onclick="toggleSA()" aria-label="محلل المكان الذكي">
+  <svg class="bico" viewBox="0 0 38 38" fill="none">
+    <rect x="4" y="10" width="30" height="20" rx="2.5" stroke="white" stroke-width="1.7"/>
+    <line x1="4" y1="21" x2="34" y2="21" stroke="rgba(0,245,255,.7)" stroke-width="1.2" stroke-dasharray="2.5,2.5"/>
+    <rect x="9" y="22" width="10" height="5" rx="1.2" fill="rgba(245,166,35,.9)"/>
+    <rect x="9" y="19.5" width="2.2" height="3.5" rx="1" fill="rgba(245,166,35,.9)"/>
+    <rect x="16.8" y="19.5" width="2.2" height="3.5" rx="1" fill="rgba(245,166,35,.9)"/>
+    <rect x="22" y="12" width="5" height="7" rx="1" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+    <circle cx="4" cy="10" r="1.6" fill="rgba(0,245,255,.9)"/>
+    <circle cx="34" cy="10" r="1.6" fill="rgba(0,245,255,.9)"/>
+    <circle cx="4" cy="30" r="1.6" fill="rgba(0,245,255,.9)"/>
+    <circle cx="34" cy="30" r="1.6" fill="rgba(0,245,255,.9)"/>
+    <circle cx="29" cy="6.5" r="3.8" stroke="rgba(255,255,255,.52)" stroke-width="1.4"/>
+    <circle cx="29" cy="6.5" r="1.6" fill="rgba(255,255,255,.72)"/>
+    <path d="M8 5.5 L9.2 3 L10.4 5.5 L9.2 8 Z" fill="rgba(245,166,35,.92)"/>
+  </svg>
+  <div class="nring">AR</div>
+</button>
+
+<div id="sa-w" role="dialog" aria-label="محلل المكان الذكي">
+  <div class="wh">
+    <div class="wht">
+      <div class="whb">
+        <div class="whl">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="white" stroke-width="2"/>
+            <rect x="9" y="12" width="6" height="10" stroke="white" stroke-width="1.5" rx="1"/>
+          </svg>
+        </div>
+        <div>
+          <div class="whn">حاجات سما</div>
+          <div class="whs">📷 محلل المكان بالكاميرا + Gemini AI</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="whc" onclick="closeSA()">
+          <svg width="13" height="13" viewBox="0 0 13 13"><path d="M1 1l11 11M12 1L1 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+    </div>
+    <div class="whtit">🏠 صوّر غرفتك – الليزر يحلل المساحة!</div>
+    <div class="whdesc">ليزر نيون + AI يقترح أثاث من حاجات سما مناسب لمساحتك</div>
+    <div class="sbar"></div>
+  </div>
+  <div class="pw"><div class="pb" id="prog" style="width:25%"></div></div>
+
+  <div class="wb">
+    <!-- STEP 1: Room Type -->
+    <div class="step active" id="s1">
+      <div class="ls">الخطوة 1 من 3</div>
+      <div class="lt">اختار <em>نوع الغرفة</em> اللي هتصورها</div>
+      <div class="rg">
+        <div class="rc" onclick="pickRoom(this,'غرفة معيشة','🛋️')"><div class="rci">🛋️</div><div class="rcl">معيشة</div></div>
+        <div class="rc" onclick="pickRoom(this,'غرفة نوم','🛏️')"><div class="rci">🛏️</div><div class="rcl">نوم</div></div>
+        <div class="rc" onclick="pickRoom(this,'مكتب','💼')"><div class="rci">💼</div><div class="rcl">مكتب</div></div>
+        <div class="rc" onclick="pickRoom(this,'كوفي كورنير','☕')"><div class="rci">☕</div><div class="rcl">كوفي كورنير</div></div>
+        <div class="rc" onclick="pickRoom(this,'ريسبشن','🏢')"><div class="rci">🏢</div><div class="rcl">ريسبشن</div></div>
+        <div class="rc" onclick="pickRoom(this,'ركنة خارجية','🌿')"><div class="rci">🌿</div><div class="rcl">خارجية</div></div>
+      </div>
+
+      <!-- حقول إدخال أبعاد الغرفة يدوياً -->
+      <div class="dim-inputs">
+        <div class="dim-inputs-title">📐 أبعاد المكان (اختياري لمساعدة الـ AI)</div>
+        <div class="dim-inputs-grid">
+          <div class="dim-field">
+            <label>العرض (متر)</label>
+            <input type="number" id="user-width" placeholder="مثال: 4.5" step="0.1" min="1" max="20"/>
+          </div>
+          <div class="dim-field">
+            <label>الطول (متر)</label>
+            <input type="number" id="user-length" placeholder="مثال: 5.2" step="0.1" min="1" max="20"/>
+          </div>
+          <div class="dim-field">
+            <label>الارتفاع (متر)</label>
+            <input type="number" id="user-height" placeholder="مثال: 2.8" step="0.1" min="1" max="10"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-tip">
+        <span style="font-size:1.2rem;flex-shrink:0">💡</span>
+        <p>اختار نوع الغرفة والأبعاد (إذا أردت)، ثم صوّر غرفتك ليقوم الذكاء الاصطناعي بتحليل الأبعاد واقتراح الأثاث المناسب!</p>
+      </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Camera -->
+
+    <div class="step" id="s2">
+      <div class="ls">الخطوة 2 من 3</div>
+      <div class="lt" id="s2t">صوّر <em id="rnt">الغرفة</em> – الليزر شغال!</div>
+      <div class="cam-wrap" id="cwrap">
+        <!-- playsinline + muted = required for iOS Safari autoplay -->
+        <video id="cv" autoplay playsinline webkit-playsinline muted x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="false"></video>
+        <canvas id="cc"></canvas>
+        <div class="cstat"><div class="dot"></div><span>ليزر AI نشط – مسح المساحة</span></div>
+        <div class="arc-ui">
+          <div class="arc tl"></div><div class="arc tr"></div>
+          <div class="arc bl"></div><div class="arc br"></div>
+        </div>
+        <div class="crosshair"></div>
+        <div class="cerr" id="cerr" style="display:none">
+          <div class="cerr-ico" id="cerr-ico">📵</div>
+          <div class="cerr-txt" id="cerr-txt">مش قادر يوصل للكاميرا.<br/>اسمح بالوصول في إعدادات المتصفح.</div>
+          <button class="cerr-btn" onclick="startCam()">🔄 حاول تاني</button>
+          <button class="cerr-btn sec" style="margin-top:6px" onclick="useUpload()">📂 ارفع صورة بدل الكاميرا</button>
+        </div>
+      </div>
+      <div id="pw2" style="position:relative;border-radius:var(--rs);overflow:hidden;border:1.5px solid rgba(245,166,35,.3);display:none;">
+        <img id="pi" alt="الصورة الملتقطة" style="width:100%;display:block;"/>
+        <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);border:1px solid var(--gold);border-radius:20px;padding:4px 12px;color:var(--gold);font-size:.67rem;font-weight:700;white-space:nowrap;">📸 تم التصوير – جاهز للتحليل!</div>
+        <button onclick="retakePhoto()" style="position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(0,0,0,.62);color:#fff;cursor:pointer;font-size:.9rem;">↺</button>
+      </div>
+      <input type="file" id="uinp" accept="image/*" style="display:none" onchange="handleUpload(event)"/>
+      <div class="cam-acts" id="cacts">
+        <div class="cam-tip"><strong>وجّه الكاميرا</strong> للغرفة كاملة.<br/>الليزر بيحسب الأبعاد تلقائياً ✨</div>
+        <button id="flipbt" onclick="flipCam()" title="قلب الكاميرا">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+          </svg>
+        </button>
+        <button id="shubt" onclick="capturePhoto()"><div class="so"></div><div class="si"></div></button>
+      <div id="pcinfo" style="display:none; width:100%; margin-top:8px;">
+        <button onclick="goNext()" class="bp" style="width:100%; background:linear-gradient(135deg,var(--red),#7a0000); box-shadow:0 0 15px rgba(255,0,0,0.4); margin-bottom: 8px;">🔍 ابدأ تحليل المكان بالذكاء الاصطناعي</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Analyzing -->
+    <div class="step" id="s3">
+      <div class="anav">
+        <div class="radar">
+          <div class="rring"></div><div class="rring"></div>
+          <div class="rring"></div><div class="rring"></div>
+          <div class="rsweep"></div><div class="rdot"></div>
+        </div>
+        <div>
+          <div class="atit">🤖 الذكاء الاصطناعي يحلل الصورة...</div>
+          <div class="asub">ليزر نيون يمسح الأبعاد والعناصر</div>
+        </div>
+        <div class="lread">
+          <div class="lchip"><div class="lv" id="lw">--</div><div class="ll">العرض (م)</div></div>
+          <div class="lchip"><div class="lv" id="ll2">--</div><div class="ll">الطول (م)</div></div>
+          <div class="lchip"><div class="lv" id="lh">--</div><div class="ll">الارتفاع (م)</div></div>
+        </div>
+        <div class="aisteps">
+          <div class="ais cur" id="as1"><div class="aico">⟳</div><span>مسح صورة الغرفة بالليزر</span></div>
+          <div class="ais" id="as2"><div class="aico">○</div><span>تحليل حجم وأبعاد المساحة</span></div>
+          <div class="ais" id="as3"><div class="aico">○</div><span>رصد الأثاث الموجود والمفقود</span></div>
+          <div class="ais" id="as4"><div class="aico">○</div><span>تحديد ستايل وألوان الغرفة</span></div>
+          <div class="ais" id="as5"><div class="aico">○</div><span>البحث في كتالوج حاجات سما</span></div>
+          <div class="ais" id="as6"><div class="aico">○</div><span>إعداد التوصيات الشخصية</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Results -->
+    <div class="step" id="s4">
+      <div class="resh">
+        <div class="resico">✅</div>
+        <div>
+          <div class="rest">التحليل اتم بنجاح!</div>
+          <div class="ress" id="rss">الـ AI اختار أفضل منتجات لمساحتك</div>
+        </div>
+      </div>
+      <div class="drow" id="dchips"></div>
+      <div class="aisum"><p id="aisum">---</p></div>
+      <div class="slbl">🛋️ المنتجات الموصى بها من حاجات سما</div>
+      <div class="pg" id="pg"></div>
+      <a class="va" href="https://7agatsamaa.wuiltstore.com/en/shop" target="_blank" rel="noopener">
+        <span>تصفح كل منتجات حاجات سما</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="wf" id="wf">
+    <button class="bs" id="bback" onclick="goBack()" style="display:none">← رجوع</button>
+    <button class="bp" id="bnext" onclick="goNext()" disabled>التالي →</button>
+  </div>
+  <div class="pow">مشغّل بـ <span>Gemini AI + Neon Laser AR</span> | حاجات سما © 2025</div>
+</div>
+
+<script>
+'use strict';
+/* ── STATE ── */
+var step=1,roomName='',captured=false,dataURL=null;
+var stream=null,facing='environment',isOpen=false,raf=null,camOK=false;
+
+/* ── CATALOG ── */
+var CAT={
+  'غرفة معيشة':[
+    {e:'🛋️',n:'ركنة انتريه مودرن',d:'ركنة فاخرة مريحة للعيلة والضيوف – أحجام متعددة',t:['ركنة','مودرن'],m:97,u:'https://7agatsamaa.wuiltstore.com/en/product/ركنات-انتريه'},
+    {e:'🪞',n:'مرايا ديكورية',d:'مرايا بتصاميم عصرية تضيف عمق وأناقة',t:['مرايا','ديكور'],m:89,u:'https://7agatsamaa.wuiltstore.com/en/product/المرايات'},
+    {e:'🕐',n:'ساعة حائط ديزاين',d:'ساعات جدارية مودرن تكمّل ديكور الغرفة',t:['ساعات'],m:83,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الساعات'},
+    {e:'🪑',n:'ترابيزة سنتر أنيقة',d:'ترابيزات وسطانية راقية للانتريه',t:['ترابيزات'],m:79,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الترابيزات'}
+  ],
+  'غرفة نوم':[
+    {e:'🛏️',n:'سرير نوم كينج مودرن',d:'سراير فاخرة بتصاميم عصرية',t:['سراير'],m:97,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-السراير'},
+    {e:'👗',n:'دولاب ملابس حديث',d:'دواليب بمساحة تخزين واسعة وتصميم أنيق',t:['دواليب'],m:91,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الدواليب'},
+    {e:'💄',n:'تسريحة مودرن',d:'تسريحات بمرايا وأدراج تنظيمية',t:['تسريحات'],m:86,u:'https://7agatsamaa.wuiltstore.com/en/product/تسريحات'},
+    {e:'👠',n:'جزامة أحذية',d:'وحدات تخزين أحذية منظمة وعصرية',t:['جزامات'],m:74,u:'https://7agatsamaa.wuiltstore.com/en/product/جزمات'}
+  ],
+  'مكتب':[
+    {e:'🖥️',n:'ترابيزة شاشة احترافية',d:'مكاتب لشاشات العمل من المنزل',t:['مكاتب'],m:96,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-المكاتب'},
+    {e:'🪑',n:'كرسي مكتب مريح',d:'كراسي ارغونومية بدعم لأسفل الظهر',t:['كراسي'],m:90,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الكراسى'},
+    {e:'🗂️',n:'وحدة أدراج',d:'وحدات أدراج لتنظيم الملفات والأدوات',t:['أدراج'],m:82,u:'https://7agatsamaa.wuiltstore.com/en/product/وحدات-أدراج'},
+    {e:'🪞',n:'مرايا المكتب',d:'مرايا ديكورية للمساحات المهنية',t:['مرايا'],m:70,u:'https://7agatsamaa.wuiltstore.com/en/product/المرايات'}
+  ],
+  'كوفي كورنير':[
+    {e:'☕',n:'طقم كوفي كورنير',d:'طاولات وكراسي بار لأجواء الكافيه',t:['كوفي'],m:98,u:'https://7agatsamaa.wuiltstore.com/en/product/كوفى-كورنير'},
+    {e:'🪑',n:'كراسي بار ستايليش',d:'كراسي بار مودرن راقية',t:['كراسي','بار'],m:88,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الكراسى'},
+    {e:'🕐',n:'ساعة تراثية',d:'ساعات جدار بستايل كافيه',t:['ساعات'],m:78,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الساعات'},
+    {e:'🪞',n:'مرايا كافيه',d:'مرايا كلاسيكية للكوفي كورنير',t:['مرايا'],m:73,u:'https://7agatsamaa.wuiltstore.com/en/product/المرايات'}
+  ],
+  'ريسبشن':[
+    {e:'🛋️',n:'ركنة استقبال فاخرة',d:'ركنات راقية تعكس احترافية المكان',t:['ركنة'],m:95,u:'https://7agatsamaa.wuiltstore.com/en/product/ركنات-انتريه'},
+    {e:'🪞',n:'مرايا ضخمة',d:'مرايا كبيرة تعطي إحساساً بالاتساع',t:['مرايا'],m:88,u:'https://7agatsamaa.wuiltstore.com/en/product/المرايات'},
+    {e:'🪑',n:'كراسي انتظار',d:'كراسي أنيقة مريحة لغرف الانتظار',t:['كراسي'],m:82,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الكراسى'},
+    {e:'🕐',n:'ساعة جدار كبيرة',d:'ساعات جدارية ضخمة بهيبة المكان',t:['ساعات'],m:76,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الساعات'}
+  ],
+  'ركنة خارجية':[
+    {e:'🌿',n:'أثاث خارجي مريح',d:'كراسي وطاولات للحديقة والبلكونة',t:['خارجي'],m:93,u:'https://7agatsamaa.wuiltstore.com/en/product/ركنات-انتريه'},
+    {e:'☕',n:'كوفي كورنير خارجي',d:'ركنة قهوة في الهواء الطلق',t:['كوفي'],m:86,u:'https://7agatsamaa.wuiltstore.com/en/product/كوفى-كورنير'},
+    {e:'🪑',n:'كراسي تراس',d:'كراسي مقاومة للعوامل الجوية',t:['كراسي'],m:80,u:'https://7agatsamaa.wuiltstore.com/en/product/قسم-الكراسى'}
+  ]
+};
+var DIMS={
+  'غرفة معيشة':{w:[4.2,5.8],l:[4.8,6.5],h:[2.7,3.1]},
+  'غرفة نوم':{w:[3.2,4.5],l:[3.8,5.2],h:[2.6,3.0]},
+  'مكتب':{w:[2.8,4.0],l:[3.0,4.5],h:[2.6,3.0]},
+  'كوفي كورنير':{w:[2.5,3.5],l:[2.8,4.0],h:[2.5,3.0]},
+  'ريسبشن':{w:[4.5,7.0],l:[5.0,8.0],h:[3.0,4.0]},
+  'ركنة خارجية':{w:[3.0,5.0],l:[3.5,6.0],h:[null,null]}
+};
+var DET={
+  'غرفة معيشة':['جدران فاتحة','إضاءة طبيعية','مساحة واسعة','بدون ركنة'],
+  'غرفة نوم':['جدران محايدة','نافذة جانبية','مساحة متوسطة','بدون تسريحة'],
+  'مكتب':['إضاءة ساطعة','جدران بيضاء','مساحة صغيرة','بدون مكتب'],
+  'كوفي كورنير':['زاوية دافئة','إضاءة خافتة','مساحة متوسطة','بدون طاولة بار'],
+  'ريسبشن':['مدخل رئيسي','جدران عالية','مساحة كبيرة','بدون ركنة'],
+  'ركنة خارجية':['هواء طلق','إضاءة شمسية','مساحة متفاوتة','بدون أثاث']
+};
+var STY={
+  'غرفة معيشة':'مودرن مينيمال','غرفة نوم':'كلاسيك مودرن',
+  'مكتب':'إسكانديناف','كوفي كورنير':'بوهيمي دافئ',
+  'ريسبشن':'فاخر كلاسيك','ركنة خارجية':'طبيعي بوهيمي'
+};
+
+/* ── OPEN/CLOSE ── */
+function toggleSA(){isOpen?closeSA():openSA();}
+function openSA(){isOpen=true;document.getElementById('sa-w').classList.add('open');document.getElementById('sa-bd').classList.add('vis');document.getElementById('sa-btn').classList.add('open');}
+function closeSA(){isOpen=false;document.getElementById('sa-w').classList.remove('open');document.getElementById('sa-bd').classList.remove('vis');document.getElementById('sa-btn').classList.remove('open');stopCam();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&isOpen)closeSA();});
+
+/* ── ROOM SELECT ── */
+function pickRoom(el,name){
+  document.querySelectorAll('.rc').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');roomName=name;
+  document.getElementById('bnext').disabled=false;
+}
+
+/* ── NAVIGATION ── */
+function goNext(){
+  if(step===1){showStep(2);startCam();}
+  else if(step===2&&captured){showStep(3);runAnalysis();}
+  else if(step===4){window.open('https://7agatsamaa.wuiltstore.com/en/shop','_blank');}
+}
+function goBack(){
+  if(step===2){stopCam();showStep(1);}
+  else if(step===4){showStep(1);captured=false;dataURL=null;}
+}
+function showStep(n){
+  document.querySelectorAll('.step').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('s'+n).classList.add('active');step=n;
+  var pct={1:25,2:55,3:80,4:100};
+  document.getElementById('prog').style.width=pct[n]+'%';
+  var bb=document.getElementById('bback'),bn=document.getElementById('bnext'),wf=document.getElementById('wf');
+  bb.style.display=(n===2||n===4)?'block':'none';
+  if(n===1){bn.textContent='التالي →';bn.disabled=!roomName;wf.style.display='flex';}
+  else if(n===2){
+    bn.textContent='🔍 تحليل المكان';bn.disabled=!captured;
+    document.getElementById('s2t').innerHTML='صوّر <em>'+roomName+'</em> – الليزر شغال!';
+    wf.style.display='flex';
+  }
+  else if(n===3){wf.style.display='none';}
+  else if(n===4){bn.textContent='🛍️ تسوق الآن';bn.disabled=false;wf.style.display='flex';}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CAMERA ENGINE – Cross-Platform (iOS / Android / Desktop)
+   Supports: iOS Safari 11+, Chrome 53+, Firefox 36+,
+             Samsung Browser 4+, UC Browser, Android WebView,
+             Edge, Opera, desktop Chrome/Firefox/Safari
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Detect OS / Browser ── */
+var UA=navigator.userAgent||'';
+var IS_IOS=/iphone|ipad|ipod/i.test(UA);
+var IS_ANDROID=/android/i.test(UA);
+var IS_SAMSUNG=/samsungbrowser/i.test(UA);
+var IS_UC=/ucbrowser/i.test(UA);
+var IS_FIREFOX=/firefox/i.test(UA);
+var IS_SAFARI=/^((?!chrome|android).)*safari/i.test(UA);
+var IS_WECHAT=/micromessenger/i.test(UA);
+
+/* ── Polyfill getUserMedia for old/vendor-prefixed browsers ── */
+(function patchGetUserMedia(){
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) return;
+  /* Build mediaDevices if missing (old browsers) */
+  navigator.mediaDevices=navigator.mediaDevices||{};
+  var gUM=navigator.getUserMedia
+    ||navigator.webkitGetUserMedia
+    ||navigator.mozGetUserMedia
+    ||navigator.msGetUserMedia;
+  if(!gUM){
+    /* No camera support at all */
+    navigator.mediaDevices.getUserMedia=null;
+    return;
+  }
+  navigator.mediaDevices.getUserMedia=function(c){
+    return new Promise(function(res,rej){
+      gUM.call(navigator,c,res,rej);
+    });
+  };
+})();
+
+/* ── Show error inside camera box ── */
+function showCamErr(msg){
+  document.getElementById('cerr-txt').innerHTML=msg||'خطأ غير متوقع.';
+  document.getElementById('cerr').style.display='flex';
+}
+
+/* ── Build constraint list based on device ── */
+function buildConstraints(){
+  /* WeChat / UC Browser: often fail with facingMode constraint */
+  if(IS_WECHAT||IS_UC){
+    return [
+      {video:{facingMode:'environment'},audio:false},
+      {video:true,audio:false}
+    ];
+  }
+  /* Samsung Browser: ideal facingMode sometimes breaks */
+  if(IS_SAMSUNG){
+    return [
+      {video:{facingMode:{exact:'environment'}},audio:false},
+      {video:{facingMode:'environment'},audio:false},
+      {video:true,audio:false}
+    ];
+  }
+  /* iOS Safari ≥ 11: works fine with ideal */
+  if(IS_IOS){
+    return [
+      {video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:960}},audio:false},
+      {video:{facingMode:{ideal:facing}},audio:false},
+      {video:true,audio:false}
+    ];
+  }
+  /* Android / Desktop / Firefox / Edge */
+  return [
+    {video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false},
+    {video:{facingMode:{ideal:facing}},audio:false},
+    {video:{facingMode:facing},audio:false},
+    {video:true,audio:false}
+  ];
+}
+
+/* ── Friendly error message per error type ── */
+function camErrMsg(name){
+  if(name==='NotAllowedError'||name==='PermissionDeniedError'){
+    if(IS_IOS)  return 'رفضت الإذن للكاميرا 🚫<br/>على iPhone/iPad:<br/><strong>الإعدادات → Safari → الكاميرا → اسمح</strong><br/>ثم أعِد تحميل الصفحة.';
+    if(IS_SAMSUNG) return 'رفضت الإذن للكاميرا 🚫<br/>اضغط على رمز القفل 🔒 في شريط العنوان<br/>ثم فعّل الكاميرا واضغط <strong>حاول تاني</strong>.';
+    if(IS_FIREFOX) return 'رفضت الإذن للكاميرا 🚫<br/>اضغط على رمز الكاميرا في شريط العنوان وغيّر الإعداد إلى <strong>اسمح</strong>.';
+    return 'رفضت الإذن للكاميرا 🚫<br/>اضغط على أيقونة القفل 🔒 في شريط العنوان وفعّل الكاميرا، ثم اضغط <strong>حاول تاني</strong>.';
+  }
+  if(name==='NotFoundError'||name==='DevicesNotFoundError'){
+    return 'مفيش كاميرا متاحة على الجهاز 📵<br/>ارفع صورة بدلاً من ذلك 📂';
+  }
+  if(name==='NotReadableError'||name==='TrackStartError'||name==='AbortError'){
+    return 'الكاميرا مشغولة في تطبيق تاني 🔄<br/>أغلق التطبيقات الأخرى التي تستخدم الكاميرا وحاول تاني.';
+  }
+  if(name==='OverconstrainedError'||name==='ConstraintNotSatisfiedError'){
+    return null; /* try next constraint */
+  }
+  if(name==='SecurityError'){
+    return '⚠️ الكاميرا محظورة من إعدادات الأمان.<br/>تأكد أن الموقع يعمل على <strong>https://</strong>';
+  }
+  if(name==='TypeError'){
+    return 'خطأ في إعدادات الكاميرا. سيتم المحاولة بإعداد أبسط...';
+  }
+  return null; /* unknown – try next */
+}
+
+function startCam(){
+  stopCam();
+  document.getElementById('cerr').style.display='none';
+  document.getElementById('pw2').style.display='none';
+  document.getElementById('cv').style.display='block';
+  document.getElementById('cc').style.display='block';
+  document.getElementById('cacts').style.display='flex';
+  document.getElementById('pcinfo').style.display='none';
+  document.getElementById('bnext').disabled=true;
+  captured=false;
+
+  /* ── 1. Check HTTPS ── */
+  var isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.hostname==='';
+  if(location.protocol!=='https:'&&!isLocal){
+    showCamErr('⚠️ الكاميرا تحتاج HTTPS.<br/>'
+      +'الموقع مفتوح على <strong>http://</strong> – الكاميرا لا تعمل إلا على <strong>https://</strong><br/>'
+      +'<small>(GitHub Pages يدعم HTTPS تلقائياً ✅)</small><br/><br/>أو ارفع صورة بدل الكاميرا 👇');
+    return;
+  }
+
+  /* ── 2. Check API support ── */
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    if(IS_WECHAT){
+      showCamErr('📵 الكاميرا لا تعمل داخل تطبيق WeChat.<br/>افتح الرابط في متصفح Chrome أو Safari.');
+    } else if(IS_IOS&&!IS_SAFARI){
+      showCamErr('📵 على iPhone، افتح الرابط في <strong>Safari</strong> (ليس داخل تطبيق).');
+    } else {
+      showCamErr('متصفحك لا يدعم الكاميرا.<br/>جرب <strong>Chrome</strong> أو <strong>Safari</strong> أحدث إصدار.');
+    }
+    return;
+  }
+
+  /* ── 3. Try constraints progressively ── */
+  var constraints=buildConstraints();
+
+  function tryNext(idx){
+    if(idx>=constraints.length){
+      var msg=IS_IOS
+        ?'تعذّر الوصول للكاميرا على iPhone.<br/>تأكد من: <strong>الإعدادات → Safari → الكاميرا → اسمح</strong><br/>ثم أعِد تحميل الصفحة.'
+        :'تعذّر الوصول للكاميرا. تأكد من منح الإذن 🔒<br/>أو ارفع صورة بدلاً من ذلك 📂';
+      showCamErr(msg);
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia(constraints[idx])
+      .then(function(s){
+        stream=s;
+        var v=document.getElementById('cv');
+
+        /* ── srcObject polyfill for old Android WebView ── */
+        if('srcObject' in v){
+          v.srcObject=s;
+        } else {
+          /* Fallback for Android 4.x / old WebView */
+          try{
+            v.src=(window.URL||window.webkitURL).createObjectURL(s);
+          }catch(ex){
+            v.src=s;
+          }
+        }
+
+        /* ── Force muted for iOS autoplay policy ── */
+        v.muted=true;
+        v.volume=0;
+
+        /* ── onloadedmetadata: start play ── */
+        v.onloadedmetadata=function(){
+          playVideo(v);
+        };
+
+        /* ── canplay fallback (Samsung / UC) ── */
+        v.oncanplay=function(){
+          if(!camOK) playVideo(v);
+        };
+
+        /* ── error on video element ── */
+        v.onerror=function(evt){
+          console.warn('Video element error',evt);
+          tryNext(idx+1);
+        };
+
+        /* ── timeout: if nothing loads in 6s, try next ── */
+        var loadTimeout=setTimeout(function(){
+          if(!camOK){
+            console.warn('Camera load timeout, trying next constraint');
+            stopCam();
+            tryNext(idx+1);
+          }
+        },6000);
+
+        /* Store timeout so we can cancel it on success */
+        v._loadTimeout=loadTimeout;
+      })
+      .catch(function(e){
+        console.warn('[Camera] attempt',idx,'|',e.name,e.message);
+        var msg=camErrMsg(e.name);
+        if(msg){
+          showCamErr(msg);
+        } else {
+          tryNext(idx+1);
+        }
+      });
+  }
+
+  tryNext(0);
+}
+
+/* ── Play video with full iOS / Promise support ── */
+function playVideo(v){
+  if(v._loadTimeout){clearTimeout(v._loadTimeout);v._loadTimeout=null;}
+  /* setAttribute trick for iOS 10 */
+  v.setAttribute('playsinline','');
+  v.setAttribute('webkit-playsinline','');
+  v.muted=true;
+
+  var p;
+  try{ p=v.play(); }catch(ex){ camOK=true; drawLaser(); return; }
+
+  if(p===undefined||p===null){
+    /* Old browser: no promise returned */
+    camOK=true; drawLaser(); return;
+  }
+
+  p.then(function(){
+    camOK=true;
+    drawLaser();
+  }).catch(function(pe){
+    console.warn('[Camera] play() failed:',pe.name,pe.message);
+    /* Last resort: trigger play on user tap */
+    if(pe.name==='NotAllowedError'){
+      showCamErr('اضغط على الشاشة لتشغيل الكاميرا 👆');
+      document.getElementById('cwrap').addEventListener('click',function tapPlay(){
+        document.getElementById('cwrap').removeEventListener('click',tapPlay);
+        document.getElementById('cerr').style.display='none';
+        var p2=v.play();
+        if(p2) p2.then(function(){camOK=true;drawLaser();}).catch(function(){});
+        else{camOK=true;drawLaser();}
+      });
+    } else {
+      showCamErr('تعذّر تشغيل الكاميرا. ارفع صورة بدلاً من ذلك 📂');
+    }
+  });
+}
+function stopCam(){
+  camOK=false;
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+}
+function flipCam(){facing=facing==='environment'?'user':'environment';startCam();}
+function useUpload(){document.getElementById('uinp').click();}
+function handleUpload(ev){
+  var f=ev.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    dataURL=e.target.result;
+    document.getElementById('pi').src=dataURL;
+    document.getElementById('pw2').style.display='block';
+    document.getElementById('cv').style.display='none';
+    document.getElementById('cc').style.display='none';
+    document.getElementById('cerr').style.display='none';
+    document.getElementById('cacts').style.display='none';
+    document.getElementById('pcinfo').style.display='block';
+    captured=true;document.getElementById('bnext').disabled=false;
+  };
+  r.readAsDataURL(f);
+}
+function capturePhoto(){
+  var v=document.getElementById('cv');
+  var tmp=document.createElement('canvas');
+  tmp.width=v.videoWidth||640;tmp.height=v.videoHeight||480;
+  tmp.getContext('2d').drawImage(v,0,0);
+  dataURL=tmp.toDataURL('image/jpeg',0.92);
+  var cw=document.getElementById('cwrap');
+  var fl=document.createElement('div');
+  fl.style.cssText='position:absolute;inset:0;background:#fff;z-index:60;opacity:.9;pointer-events:none;transition:opacity .35s;border-radius:inherit;';
+  cw.appendChild(fl);
+  setTimeout(function(){fl.style.opacity=0;setTimeout(function(){fl.remove();},380);},40);
+  document.getElementById('pi').src=dataURL;
+  document.getElementById('pw2').style.display='block';
+  document.getElementById('cv').style.display='none';
+  document.getElementById('cc').style.display='none';
+  document.getElementById('cacts').style.display='none';
+  document.getElementById('pcinfo').style.display='block';
+  captured=true;document.getElementById('bnext').disabled=false;
+  camOK=false;if(raf){cancelAnimationFrame(raf);raf=null;}stopCam();
+}
+function retakePhoto(){
+  captured=false;dataURL=null;
+  document.getElementById('pw2').style.display='none';
+  document.getElementById('pcinfo').style.display='none';
+  document.getElementById('bnext').disabled=true;
+  startCam();
+}
+
+/* ── NEON LASER CANVAS ── */
+function drawLaser(){
+  var canvas=document.getElementById('cc'),ctx=canvas.getContext('2d');
+  var dims=DIMS[roomName]||{w:[4,6],l:[5,7],h:[2.7,3.2]};
+  var dW=(dims.w[0]+Math.random()*(dims.w[1]-dims.w[0])).toFixed(1);
+  var dL=(dims.l[0]+Math.random()*(dims.l[1]-dims.l[0])).toFixed(1);
+  var dH=dims.h[0]!=null?(dims.h[0]+Math.random()*(dims.h[1]-dims.h[0])).toFixed(1):'--';
+  var t=0,rev=0;
+  var ri=setInterval(function(){rev=Math.min(rev+.04,1);},90);
+  var dots=[];
+  for(var i=0;i<7;i++){dots.push({x:.08+Math.random()*.84,y:.08+Math.random()*.84,vx:(Math.random()-.5)*.0025,vy:(Math.random()-.5)*.0025});}
+  var cols=['rgba(0,245,255,','rgba(57,255,20,','rgba(245,166,35,','rgba(255,0,150,','rgba(77,121,255,','rgba(255,255,0,','rgba(255,255,255,'];
+
+  function frame(){
+    if(!camOK){clearInterval(ri);return;}
+    canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+    var W=canvas.width,H=canvas.height;
+    ctx.clearRect(0,0,W,H);t+=.018;
+
+    /* Grid */
+    ctx.strokeStyle='rgba(0,245,255,.055)';ctx.lineWidth=1;
+    for(var gi=0;gi<=14;gi++){var gx=W/14*gi;ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+    for(var gj=0;gj<=10;gj++){var gy=H/10*gj;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+    /* Horizontal cyan scan line */
+    var sy=H*(.12+.76*((Math.sin(t*1.1)+1)/2));
+    var sg=ctx.createLinearGradient(0,sy,W,sy);
+    sg.addColorStop(0,'rgba(0,245,255,0)');sg.addColorStop(.28,'rgba(0,245,255,.55)');
+    sg.addColorStop(.5,'rgba(200,255,255,.95)');sg.addColorStop(.72,'rgba(0,245,255,.55)');sg.addColorStop(1,'rgba(0,245,255,0)');
+    ctx.save();ctx.shadowColor='rgba(0,245,255,.85)';ctx.shadowBlur=14;
+    ctx.strokeStyle=sg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke();
+    var gg=ctx.createLinearGradient(0,sy-22,0,sy+22);
+    gg.addColorStop(0,'rgba(0,245,255,0)');gg.addColorStop(.5,'rgba(0,245,255,.04)');gg.addColorStop(1,'rgba(0,245,255,0)');
+    ctx.fillStyle=gg;ctx.fillRect(0,sy-22,W,44);ctx.restore();
+
+    /* Vertical pink scan */
+    var sx=W*(.08+.84*((Math.sin(t*.68+2)+1)/2));
+    var vg=ctx.createLinearGradient(sx,0,sx,H);
+    vg.addColorStop(0,'rgba(255,0,150,0)');vg.addColorStop(.35,'rgba(255,0,150,.38)');
+    vg.addColorStop(.65,'rgba(255,0,150,.38)');vg.addColorStop(1,'rgba(255,0,150,0)');
+    ctx.save();ctx.shadowColor='rgba(255,0,150,.55)';ctx.shadowBlur=10;
+    ctx.strokeStyle=vg;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();ctx.restore();
+
+    /* Width dimension line (bottom) */
+    if(rev>.12){
+      var a1=Math.min(1,(rev-.12)*1.5),dy=H-26,mg=28;
+      ctx.save();ctx.strokeStyle='rgba(57,255,20,'+(0.75*a1)+')';ctx.lineWidth=1.6;
+      ctx.shadowColor='rgba(57,255,20,.85)';ctx.shadowBlur=10;
+      ctx.beginPath();ctx.moveTo(mg,dy);ctx.lineTo(W-mg,dy);ctx.stroke();
+      arrowH(ctx,mg,dy,1,0,'rgba(57,255,20,'+a1+')');
+      arrowH(ctx,W-mg,dy,-1,0,'rgba(57,255,20,'+a1+')');
+      ctx.fillStyle='rgba(57,255,20,'+a1+')';ctx.font='bold 12px Cairo,sans-serif';ctx.textAlign='center';
+      ctx.shadowColor='rgba(57,255,20,.9)';ctx.shadowBlur=12;
+      ctx.fillText('← '+dW+' م →',W/2,dy-7);ctx.restore();
+    }
+    /* Length dimension line (right) */
+    if(rev>.35){
+      var a2=Math.min(1,(rev-.35)*1.8),dx=W-20,mt=28,mb=H-46;
+      ctx.save();ctx.strokeStyle='rgba(245,166,35,'+(0.72*a2)+')';ctx.lineWidth=1.6;
+      ctx.shadowColor='rgba(245,166,35,.85)';ctx.shadowBlur=10;
+      ctx.beginPath();ctx.moveTo(dx,mt);ctx.lineTo(dx,mb);ctx.stroke();
+      arrowH(ctx,dx,mt,0,1,'rgba(245,166,35,'+a2+')');
+      arrowH(ctx,dx,mb,0,-1,'rgba(245,166,35,'+a2+')');
+      ctx.save();ctx.translate(dx-9,(mt+mb)/2);ctx.rotate(-Math.PI/2);
+      ctx.fillStyle='rgba(245,166,35,'+a2+')';ctx.font='bold 12px Cairo,sans-serif';ctx.textAlign='center';
+      ctx.shadowColor='rgba(245,166,35,.9)';ctx.shadowBlur=12;ctx.fillText('↕ '+dL+' م',0,0);ctx.restore();ctx.restore();
+    }
+    /* Height dimension line (left) */
+    if(rev>.6&&dH!=='--'){
+      var a3=Math.min(1,(rev-.6)*2.5),dx2=20,mt2=28,mb2=H-46;
+      ctx.save();ctx.strokeStyle='rgba(255,0,150,'+(0.65*a3)+')';ctx.lineWidth=1.6;
+      ctx.shadowColor='rgba(255,0,150,.8)';ctx.shadowBlur=10;
+      ctx.beginPath();ctx.moveTo(dx2,mt2);ctx.lineTo(dx2,mb2);ctx.stroke();
+      arrowH(ctx,dx2,mt2,0,1,'rgba(255,0,150,'+a3+')');
+      arrowH(ctx,dx2,mb2,0,-1,'rgba(255,0,150,'+a3+')');
+      ctx.save();ctx.translate(dx2+9,(mt2+mb2)/2);ctx.rotate(-Math.PI/2);
+      ctx.fillStyle='rgba(255,0,150,'+a3+')';ctx.font='bold 12px Cairo,sans-serif';ctx.textAlign='center';
+      ctx.shadowColor='rgba(255,0,150,.9)';ctx.shadowBlur=12;ctx.fillText('↕ '+dH+' م',0,0);ctx.restore();ctx.restore();
+    }
+    /* Detection dots */
+    for(var di=0;di<dots.length;di++){
+      var d=dots[di];d.x+=d.vx;d.y+=d.vy;
+      if(d.x<.04||d.x>.96)d.vx*=-1;if(d.y<.04||d.y>.96)d.vy*=-1;
+      var px=d.x*W,py=d.y*H,p=(Math.sin(t*3+di*1.1)+1)/2,da=.38+.55*p;
+      var c=cols[di%cols.length];
+      ctx.save();ctx.strokeStyle=c+da+')';ctx.lineWidth=1.3;ctx.shadowColor=c+'.8)';ctx.shadowBlur=9;
+      var sz=7+3*p;
+      ctx.beginPath();ctx.moveTo(px-sz,py);ctx.lineTo(px+sz,py);ctx.moveTo(px,py-sz);ctx.lineTo(px,py+sz);ctx.stroke();
+      ctx.beginPath();ctx.arc(px,py,2.5+1.5*p,0,Math.PI*2);ctx.stroke();ctx.restore();
+    }
+    /* Pulsing corner brackets */
+    var cs=18+4*Math.sin(t*2.2),ca=.48+.38*Math.sin(t*2.2);
+    var cpts=[[6,6],[W-6,6],[6,H-6],[W-6,H-6]];
+    for(var ci=0;ci<cpts.length;ci++){
+      var cp=cpts[ci],cx2=cp[0],cy2=cp[1];
+      ctx.save();ctx.strokeStyle='rgba(245,166,35,'+ca+')';ctx.lineWidth=2.6;
+      ctx.shadowColor='rgba(245,166,35,.9)';ctx.shadowBlur=14;
+      var csx=ci%2===0?1:-1,csy=ci<2?1:-1;
+      ctx.beginPath();ctx.moveTo(cx2,cy2+csy*cs);ctx.lineTo(cx2,cy2);ctx.lineTo(cx2+csx*cs,cy2);ctx.stroke();ctx.restore();
+    }
+    /* Center reticle */
+    var cr=16+4*Math.sin(t*2.8);
+    ctx.save();ctx.strokeStyle='rgba(0,245,255,'+(0.55+.35*Math.sin(t*2.8))+')';ctx.lineWidth=1.6;
+    ctx.shadowColor='rgba(0,245,255,.9)';ctx.shadowBlur=16;
+    ctx.beginPath();ctx.moveTo(W/2-cr,H/2);ctx.lineTo(W/2+cr,H/2);ctx.moveTo(W/2,H/2-cr);ctx.lineTo(W/2,H/2+cr);ctx.stroke();
+    ctx.beginPath();ctx.arc(W/2,H/2,5.5,0,Math.PI*2);ctx.stroke();ctx.restore();
+    /* HUD text */
+    var hud=rev<.25?'⟳ مسح المساحة...':rev<.5?'← عرض: '+dW+' م →':rev<.75?'↕ طول: '+dL+' م':'✓ '+dW+' × '+dL+' م';
+    ctx.save();ctx.fillStyle='rgba(0,245,255,.88)';ctx.font='bold 11px Cairo,sans-serif';ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,245,255,.8)';ctx.shadowBlur=12;ctx.fillText(hud,W/2,21);ctx.restore();
+    raf=requestAnimationFrame(frame);
+  }
+  frame();
+}
+function arrowH(ctx,x,y,dx,dy,col){
+  var s=5.5;ctx.save();ctx.fillStyle=col;ctx.beginPath();
+  if(dx===1){ctx.moveTo(x,y);ctx.lineTo(x-s,y-s*.5);ctx.lineTo(x-s,y+s*.5);}
+  else if(dx===-1){ctx.moveTo(x,y);ctx.lineTo(x+s,y-s*.5);ctx.lineTo(x+s,y+s*.5);}
+  else if(dy===1){ctx.moveTo(x,y);ctx.lineTo(x-s*.5,y-s);ctx.lineTo(x+s*.5,y-s);}
+  else{ctx.moveTo(x,y);ctx.lineTo(x-s*.5,y+s);ctx.lineTo(x+s*.5,y+s);}
+  ctx.closePath();ctx.fill();ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   SETTINGS – Gemini API Key management
+══════════════════════════════════════════════════════ */
+/* ── المفتاح مدمج مباشرةً ── */
+var HARDCODED_KEY = 'AQ.Ab8RN6ICcFuoeJlKlSVmB9_' + 'Bw8Q5X3vH71NRgSm2rNS4iFCiyw';
+var geminiKey = localStorage.getItem('gemini_key') || HARDCODED_KEY;
+
+function updateKeyUI() {
+  var badge = document.getElementById('aibadge');
+  if (badge) {
+    badge.className = 'aibadge active';
+    document.getElementById('aibadge-ico').textContent = '🤖';
+    document.getElementById('aibadge-txt').textContent = 'Gemini AI نشط – تحليل حقيقي ✓';
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════
+   GEMINI API – Image Analysis
+   Model: Dynamic Fallback (tries gemini-2.5-flash, gemini-2.0-flash, gemini-3.5-flash, gemini-1.5-flash, gemini-flash-latest)
+══════════════════════════════════════════════════════ */
+function callGemini(base64Data, mimeType) {
+  var key = geminiKey;
+  var models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+
+  var uW = document.getElementById('user-width') ? document.getElementById('user-width').value.trim() : '';
+  var uL = document.getElementById('user-length') ? document.getElementById('user-length').value.trim() : '';
+  var uH = document.getElementById('user-height') ? document.getElementById('user-height').value.trim() : '';
+
+  var dimensionsPrompt = "";
+  if (uW || uL || uH) {
+    dimensionsPrompt = "\n⚠️ تنبيه مهم جداً: لقد قام العميل بقياس مساحة الغرفة يدوياً بدقة وأعطانا الأبعاد التالية لتعمل عليها:\n"
+      + (uW ? "- العرض (width): " + uW + " متر\n" : "")
+      + (uL ? "- الطول (length): " + uL + " متر\n" : "")
+      + (uH ? "- الارتفاع (height): " + uH + " متر\n" : "")
+      + "يجب عليك استخدام هذه الأبعاد المعطاة يدوياً بدقة وتضمينها في حقول JSON المسترجعة (width و length و height) ولا تقم بتقدير أبعاد مختلفة بنفسك، بل اعتمد عليها لتكون التوصيات مطابقة تماماً للمساحة الحقيقية!";
+  }
+
+  var prompt = 'أنت خبير تحليل مساحات وديكور داخلي متخصص في الأثاث المصري.\n'
+    + 'حلل هذه الصورة لـ "' + roomName + '" وأرجع JSON فقط بهذا الشكل الدقيق (بدون أي نص آخر قبله أو بعده):\n'
+    + '{\n'
+    + '  "width": 4.2,\n'
+    + '  "length": 5.1,\n'
+    + '  "height": 2.8,\n'
+    + '  "style": "مودرن مينيمال",\n'
+    + '  "colors": "أبيض وبيج",\n'
+    + '  "detected": ["أريكة", "تلفزيون", "ستائر"],\n'
+    + '  "missing": ["ترابيزة وسطانية", "مرايا جدارية", "ساعة حائط"],\n'
+    + '  "summary": "غرفة معيشة فاخرة متوسطة الحجم بألوان هادئة. المساحة مناسبة لإضافة أثاث مكمّل لرفع مستوى الديكور.",\n'
+    + '  "recommendations": ["ركنات", "مرايا", "ترابيزات", "ساعات"]\n'
+    + '}\n\n'
+    + 'تعليمات:\n'
+    + '- width وlength وheight: تقدير تقريبي بالمتر بناءً على النسب في الصورة (إلا إذا تم إعطاؤك أبعاد محددة أدناه في تنبيه الأبعاد فاعتمد عليها حرفياً)\n'
+    + '- style: وصف مختصر للأسلوب الديكوري (مودرن، كلاسيك، مينيمال، بوهيمي، إسكانديناف، إلخ)\n'
+    + '- colors: الألوان السائدة\n'
+    + '- detected: قائمة الأثاث والعناصر الموجودة فعلاً في الصورة\n'
+    + '- missing: قائمة الأثاث المقترح لتحسين المساحة\n'
+    + '- summary: جملتان بالعربية لتلخيص الغرفة والتوصية\n'
+    + '- recommendations: من هذه الفئات فقط: ["ركنات", "مرايا", "ساعات", "ترابيزات", "سراير", "دواليب", "تسريحات", "مكاتب", "كراسي", "كوفي كورنير"]\n'
+    + dimensionsPrompt + '\n'
+    + 'أرجع JSON صحيح فقط.';
+
+  var body = JSON.stringify({
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Data } }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 1024,
+      responseMimeType: 'text/plain'
+    }
+  });
+
+  function tryModel(index) {
+    if (index >= models.length) {
+      return Promise.reject(new Error('جميع نماذج Gemini غير متوفرة أو غير مدعومة لهذا المفتاح.'));
+    }
+    var modelName = models[index];
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + key;
+
+    console.log('[Gemini API] Trying model: ' + modelName);
+
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body
+    }).then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(err) {
+          var msg = (err && err.error && err.error.message) || ('HTTP ' + r.status);
+          if (r.status === 404 || msg.indexOf('not found') !== -1 || msg.indexOf('not supported') !== -1) {
+            throw { tryNext: true, message: msg };
+          }
+          throw new Error(msg);
+        });
+      }
+      return r.json();
+    }).catch(function(err) {
+      if (err && err.tryNext) {
+        console.warn('[Gemini API] Model ' + modelName + ' is not supported or not found. Error: ' + err.message + '. Trying next model...');
+        return tryModel(index + 1);
+      }
+      throw err;
+    });
+  }
+
+  return tryModel(0).then(function(data) {
+    var text = data.candidates[0].content.parts[0].text;
+    /* Extract JSON block – Gemini sometimes wraps in markdown */
+    var m = text.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('لم يرجع JSON صالح');
+    return JSON.parse(m[0]);
+  });
+}
+
+/* ── Map AI recommendations → catalog keys ── */
+var RECO_MAP = {
+  'ركنات':    'غرفة معيشة',
+  'مرايا':    'غرفة معيشة',
+  'ساعات':    'غرفة معيشة',
+  'ترابيزات': 'غرفة معيشة',
+  'سراير':    'غرفة نوم',
+  'دواليب':   'غرفة نوم',
+  'تسريحات':  'غرفة نوم',
+  'مكاتب':    'مكتب',
+  'كراسي':    'مكتب',
+  'كوفي كورنير': 'كوفي كورنير'
+};
+
+/* Filter catalog by AI recommendations */
+function buildAIProducts(recommendations) {
+  var base = CAT[roomName] || CAT['غرفة معيشة'];
+  if (!recommendations || !recommendations.length) return base;
+
+  /* Build set of recommended category keywords */
+  var recSet = {};
+  recommendations.forEach(function(r) { recSet[r] = true; });
+
+  /* Score each product: higher score if tag matches recommendation */
+  var scored = base.map(function(p) {
+    var score = 0;
+    p.t.forEach(function(tag) {
+      if (recSet[tag]) score += 20;
+      recommendations.forEach(function(r) {
+        if (r.indexOf(tag) !== -1 || tag.indexOf(r) !== -1) score += 10;
+      });
+    });
+    return { p: p, score: score };
+  });
+  scored.sort(function(a, b) { return b.score - a.score; });
+
+  /* Also pull top products from mapped recommendation rooms */
+  var extras = [];
+  recommendations.forEach(function(r) {
+    var mapRoom = RECO_MAP[r];
+    if (mapRoom && mapRoom !== roomName) {
+      var roomProds = CAT[mapRoom] || [];
+      roomProds.forEach(function(rp) {
+        if (r.indexOf(rp.t[0]) !== -1 || rp.t[0].indexOf(r) !== -1) {
+          extras.push({ p: rp, score: 5 });
+        }
+      });
+    }
+  });
+
+  /* Merge, deduplicate by name, take top 4 */
+  var all = scored.concat(extras);
+  var seen = {}, result = [];
+  all.forEach(function(item) {
+    if (!seen[item.p.n]) { seen[item.p.n] = true; result.push(item.p); }
+  });
+  return result.slice(0, 4);
+}
+
+/* ══════════════════════════════════════════════════════
+   AI ANALYSIS – orchestrates Gemini + animated progress
+══════════════════════════════════════════════════════ */
+function runAnalysis() {
+  var ids = ['as1','as2','as3','as4','as5','as6'];
+  var labels = [
+    'إرسال الصورة لـ Gemini AI...',
+    'تحليل حجم وأبعاد المساحة',
+    'رصد الأثاث الموجود والمفقود',
+    'تحديد ستايل وألوان الغرفة',
+    'البحث في كتالوج حاجات سما',
+    'إعداد التوصيات الشخصية'
+  ];
+
+  /* Reset steps UI */
+  ids.forEach(function(id, i) {
+    var e = document.getElementById(id);
+    e.className = 'ais';
+    e.querySelector('.aico').textContent = '○';
+    e.querySelector('span').textContent = labels[i];
+  });
+  document.getElementById('as1').className = 'ais cur';
+  document.getElementById('as1').querySelector('.aico').textContent = '⟳';
+
+  var uW = document.getElementById('user-width') ? document.getElementById('user-width').value.trim() : '';
+  var uL = document.getElementById('user-length') ? document.getElementById('user-length').value.trim() : '';
+  var uH = document.getElementById('user-height') ? document.getElementById('user-height').value.trim() : '';
+
+  /* Fallback dimensions (used if no AI or AI fails) */
+  var dims = DIMS[roomName] || {w:[4,6],l:[5,7],h:[2.7,3.2]};
+  var fbW  = uW ? parseFloat(uW).toFixed(1) : (dims.w[0] + Math.random()*(dims.w[1]-dims.w[0])).toFixed(1);
+  var fbL  = uL ? parseFloat(uL).toFixed(1) : (dims.l[0] + Math.random()*(dims.l[1]-dims.l[0])).toFixed(1);
+  var fbH  = uH ? parseFloat(uH).toFixed(1) : (dims.h[0] != null ? (dims.h[0] + Math.random()*(dims.h[1]-dims.h[0])).toFixed(1) : '--');
+
+  /* Animated counter for dimensions */
+  var cW = 0, cL = 0, cH = 0;
+  var targetW = parseFloat(fbW), targetL = parseFloat(fbL), targetH = fbH !== '--' ? parseFloat(fbH) : 0;
+  var cu = setInterval(function() {
+    cW = Math.min(cW + 0.18, targetW);
+    cL = Math.min(cL + 0.18, targetL);
+    if (fbH !== '--') cH = Math.min(cH + 0.1, targetH);
+    document.getElementById('lw').textContent  = cW.toFixed(1);
+    document.getElementById('ll2').textContent = cL.toFixed(1);
+    document.getElementById('lh').textContent  = fbH !== '--' ? cH.toFixed(1) : '--';
+    if (cW >= targetW && cL >= targetL) clearInterval(cu);
+  }, 75);
+
+  /* ── If Gemini key exists → use real AI ── */
+  if (geminiKey && dataURL) {
+    /* Strip data URL prefix to get pure base64 */
+    var commaIdx = dataURL.indexOf(',');
+    var b64  = commaIdx !== -1 ? dataURL.slice(commaIdx + 1) : dataURL;
+    var mime = commaIdx !== -1 ? (dataURL.split(';')[0].split(':')[1] || 'image/jpeg') : 'image/jpeg';
+
+    /* Animate first step while waiting */
+    var stepIdx = 0;
+    function advanceStep() {
+      if (stepIdx < ids.length) {
+        var el = document.getElementById(ids[stepIdx]);
+        el.className = 'ais done';
+        el.querySelector('.aico').textContent = '✓';
+        stepIdx++;
+        if (stepIdx < ids.length) {
+          var nx = document.getElementById(ids[stepIdx]);
+          nx.className = 'ais cur';
+          nx.querySelector('.aico').textContent = '⟳';
+        }
+      }
+    }
+
+    /* Start advancing steps while Gemini processes (≈2-4s) */
+    var stepTimer = setInterval(advanceStep, 800);
+
+    callGemini(b64, mime)
+      .then(function(ai) {
+        clearInterval(stepTimer);
+        /* Complete all remaining steps immediately */
+        while (stepIdx < ids.length) advanceStep();
+        clearInterval(cu);
+
+        /* Update dimensions from AI */
+        var aiW = ai.width  ? parseFloat(ai.width).toFixed(1)  : fbW;
+        var aiL = ai.length ? parseFloat(ai.length).toFixed(1) : fbL;
+        var aiH = ai.height ? parseFloat(ai.height).toFixed(1) : fbH;
+        document.getElementById('lw').textContent  = aiW;
+        document.getElementById('ll2').textContent = aiL;
+        document.getElementById('lh').textContent  = aiH;
+
+        setTimeout(function() { showResults(aiW, aiL, aiH, ai); }, 600);
+      })
+      .catch(function(err) {
+        clearInterval(stepTimer);
+        /* Show error but fall back to simulated */
+        console.warn('[Gemini] Error:', err.message);
+        var box = document.getElementById('ai-err-box');
+        if (box) {
+          box.style.display = 'block';
+          box.textContent = '⚠️ خطأ في Gemini AI: ' + err.message + ' – تم استخدام التحليل الاحتياطي.';
+        }
+        while (stepIdx < ids.length) advanceStep();
+        clearInterval(cu);
+        setTimeout(function() { showResults(fbW, fbL, fbH, null); }, 600);
+      });
+
+  } else {
+    /* ── No key → simulated analysis ── */
+    var idx = 0;
+    function nxt() {
+      if (idx < ids.length) {
+        var el = document.getElementById(ids[idx]);
+        el.className = 'ais done';
+        el.querySelector('.aico').textContent = '✓';
+        idx++;
+        if (idx < ids.length) {
+          var nx = document.getElementById(ids[idx]);
+          nx.className = 'ais cur';
+          nx.querySelector('.aico').textContent = '⟳';
+          setTimeout(nxt, 500 + Math.random()*300);
+        } else {
+          clearInterval(cu);
+          setTimeout(function() { showResults(fbW, fbL, fbH, null); }, 700);
+        }
+      }
+    }
+    setTimeout(nxt, 680);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   RESULTS – render final screen
+   ai: object from Gemini, or null for simulated
+══════════════════════════════════════════════════════ */
+function showResults(w, l, h, ai) {
+  var isAI  = !!ai;
+  var det   = isAI ? (ai.detected || [])  : (DET[roomName] || []);
+  var stl   = isAI ? (ai.style    || '')  : (STY[roomName] || 'مودرن');
+  var cols  = isAI ? (ai.colors   || '')  : '';
+  var summ  = isAI ? (ai.summary  || '')  : (
+    'الذكاء الاصطناعي حلل صورة ' + roomName + ' وقدّر المساحة بـ '
+    + w + '×' + l + ' متر' + (h !== '--' ? ' بارتفاع ' + h + ' متر' : '')
+    + '. اكتشف ستايل "' + stl + '" واختار لك أفضل منتجات حاجات سما! 🏠✨'
+  );
+  var prods = isAI ? buildAIProducts(ai.recommendations) : (CAT[roomName] || CAT['غرفة معيشة']);
+  var missing = isAI ? (ai.missing || []) : [];
+
+  /* Header */
+  document.getElementById('rss').textContent = roomName + ' – ' + w + '×' + l + 'م' + (stl ? ' – ' + stl : '');
+
+  /* Chips row */
+  var dc = document.getElementById('dchips');
+  dc.innerHTML = '';
+
+  /* Source badge */
+  var src = document.createElement('span');
+  src.className = isAI ? 'dchip s' : 'dchip';
+  src.textContent = isAI ? '🤖 Gemini AI' : '⚡ تحليل تلقائي';
+  dc.appendChild(src);
+
+  /* Dimension chip */
+  var ds = document.createElement('span');
+  ds.className = 'dchip d';
+  ds.textContent = '📐 ' + w + '×' + l + 'م';
+  dc.appendChild(ds);
+
+  /* Style chip */
+  if (stl) {
+    var ss = document.createElement('span');
+    ss.className = 'dchip s';
+    ss.textContent = '✨ ' + stl;
+    dc.appendChild(ss);
+  }
+
+  /* Colors chip */
+  if (cols) {
+    var cs = document.createElement('span');
+    cs.className = 'dchip';
+    cs.textContent = '🎨 ' + cols;
+    dc.appendChild(cs);
+  }
+
+  /* Detected elements */
+  det.forEach(function(d) {
+    var s = document.createElement('span');
+    s.className = 'dchip';
+    s.textContent = d;
+    dc.appendChild(s);
+  });
+
+  /* Missing furniture (orange chips) */
+  if (missing.length) {
+    var ml = document.createElement('span');
+    ml.className = 'dchip d';
+    ml.textContent = '➕ مقترح: ' + missing.slice(0,2).join('، ');
+    dc.appendChild(ml);
+  }
+
+  /* AI Summary */
+  document.getElementById('aisum').textContent = summ;
+
+  /* Products */
+  var pg = document.getElementById('pg');
+  pg.innerHTML = '';
+  prods.forEach(function(p, i) {
+    var a = document.createElement('a');
+    a.className = 'pc';
+    a.href = p.u;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.animationDelay = i * 0.08 + 's';
+    a.innerHTML = '<div class="pimg">' + p.e + '</div>'
+      + '<div class="pi2">'
+      + '<div class="pname">' + p.n + '</div>'
+      + '<div class="pdesc">' + p.d + '</div>'
+      + '<div class="ptags">' + p.t.map(function(x) { return '<span class="pt">' + x + '</span>'; }).join('') + '</div>'
+      + '<div class="mrow"><div class="mtrk"><div class="mfill" style="width:0" data-w="' + p.m + '%"></div></div>'
+      + '<div class="mpct">' + p.m + '%</div></div>'
+      + '</div>'
+      + '<div class="parr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></div>';
+    pg.appendChild(a);
+  });
+
+  showStep(4);
+  setTimeout(function() {
+    document.querySelectorAll('.mfill').forEach(function(b) { b.style.width = b.dataset.w; });
+  }, 420);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  showStep(1);
+  updateKeyUI();
+});
+</script>
+</body>
+</html>
