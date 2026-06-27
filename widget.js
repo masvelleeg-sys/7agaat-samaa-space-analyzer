@@ -559,6 +559,10 @@
       document.getElementById('hjcacts').style.display = 'none';
       document.getElementById('hjpcinfo').style.display = 'block';
       hjCaptured = true; document.getElementById('hjbnext').disabled = false;
+      setTimeout(function () {
+        var wb = document.querySelector('#hjsaw-w .wb');
+        if (wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
+      }, 120);
     };
     r.readAsDataURL(f);
   };
@@ -580,6 +584,10 @@
     document.getElementById('hjpcinfo').style.display = 'block';
     hjCaptured = true; document.getElementById('hjbnext').disabled = false;
     hjCamOK = false; if (hjRaf) { cancelAnimationFrame(hjRaf); hjRaf = null; } hjStopCam();
+    setTimeout(function () {
+      var wb = document.querySelector('#hjsaw-w .wb');
+      if (wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
+    }, 120);
   };
   window.hjRetakePhoto = function () {
     hjCaptured = false; hjDataURL = null;
