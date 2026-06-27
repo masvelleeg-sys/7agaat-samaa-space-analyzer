@@ -339,6 +339,12 @@ body{font-family:var(--font);background:#020205;min-height:100vh;}
         <span style="font-size:1.2rem;flex-shrink:0">💡</span>
         <p>اختار نوع الغرفة والأبعاد (إذا أردت)، ثم صوّر غرفتك ليقوم الذكاء الاصطناعي بتحليل الأبعاد واقتراح الأثاث المناسب!</p>
       </div>
+      <!-- AI status badge -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div class="aibadge" id="aibadge">
+          <span id="aibadge-ico">🤖</span>
+          <span id="aibadge-txt">Gemini AI نشط – تحليل حقيقي ✓</span>
+        </div>
       </div>
     </div>
 
@@ -378,9 +384,8 @@ body{font-family:var(--font);background:#020205;min-height:100vh;}
           </svg>
         </button>
         <button id="shubt" onclick="capturePhoto()"><div class="so"></div><div class="si"></div></button>
-      <div id="pcinfo" style="display:none; width:100%; margin-top:8px;">
-        <button onclick="goNext()" class="bp" style="width:100%; background:linear-gradient(135deg,var(--red),#7a0000); box-shadow:0 0 15px rgba(255,0,0,0.4); margin-bottom: 8px;">🔍 ابدأ تحليل المكان بالذكاء الاصطناعي</button>
       </div>
+      <div id="pcinfo"><strong>✅ الصورة جاهزة</strong> – اضغط <strong>تحليل المكان</strong> دلوقتي</div>
     </div>
 
     <!-- STEP 3: Analyzing -->
@@ -811,10 +816,6 @@ function handleUpload(ev){
     document.getElementById('cacts').style.display='none';
     document.getElementById('pcinfo').style.display='block';
     captured=true;document.getElementById('bnext').disabled=false;
-    setTimeout(function(){
-      var wb=document.querySelector('.wb');
-      if(wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
-    }, 120);
   };
   r.readAsDataURL(f);
 }
@@ -837,10 +838,6 @@ function capturePhoto(){
   document.getElementById('pcinfo').style.display='block';
   captured=true;document.getElementById('bnext').disabled=false;
   camOK=false;if(raf){cancelAnimationFrame(raf);raf=null;}stopCam();
-  setTimeout(function(){
-    var wb=document.querySelector('.wb');
-    if(wb) wb.scrollTo({ top: wb.scrollHeight, behavior: 'smooth' });
-  }, 120);
 }
 function retakePhoto(){
   captured=false;dataURL=null;
