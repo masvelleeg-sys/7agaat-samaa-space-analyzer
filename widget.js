@@ -35,7 +35,7 @@
     ':root{--hj-red:#ff0000;--hj-red-glow:rgba(255,0,0,0.5);--hj-dark:#000000;--hj-dark2:#0a0a0a;--hj-r:20px;--hj-rs:12px;--hj-font:\'Cairo\',sans-serif;--hj-spd:.35s;}',
 
     /* Floating button */
-    '#hjsaw-btn{position:fixed;bottom:28px;left:28px;width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;z-index:2147483640;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#120000,#3a0000,#000000);box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,.45);animation:hj-bp 2.8s ease-in-out infinite;transition:transform var(--hj-spd),box-shadow var(--hj-spd);overflow:visible;font-family:var(--hj-font);}',
+    '#hjsaw-btn{position:fixed;bottom:28px;left:28px;width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;z-index:2147483640;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#cc0000,#1a1a1a,#000000);box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,.45);animation:hj-bp 2.8s ease-in-out infinite;transition:transform var(--hj-spd),box-shadow var(--hj-spd);overflow:visible;font-family:var(--hj-font);}',
     '#hjsaw-btn:hover{transform:scale(1.12) translateY(-3px);animation:none;box-shadow:0 18px 55px rgba(0,0,0,.85),0 0 45px rgba(255,0,0,.35);}',
     '#hjsaw-btn:active{transform:scale(.94);}',
     '@keyframes hj-bp{0%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,.55);}65%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 20px rgba(255,0,0,0);}100%{box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 0 rgba(255,0,0,0);}}',
@@ -230,21 +230,25 @@
     /* Floating button */
     '<button id="hjsaw-btn" onclick="hjSA_toggle()" aria-label="محلل المكان الذكي – حاجات سما">' +
       '<svg class="hj-bico" viewBox="0 0 38 38" fill="none">' +
-        '<rect x="4" y="10" width="30" height="20" rx="2.5" stroke="white" stroke-width="1.7"/>' +
-        '<line x1="4" y1="21" x2="34" y2="21" stroke="rgba(0,245,255,.7)" stroke-width="1.2" stroke-dasharray="2.5,2.5"/>' +
-        '<rect x="9" y="22" width="10" height="5" rx="1.2" fill="rgba(245,166,35,.9)"/>' +
-        '<rect x="9" y="19.5" width="2.2" height="3.5" rx="1" fill="rgba(245,166,35,.9)"/>' +
-        '<rect x="16.8" y="19.5" width="2.2" height="3.5" rx="1" fill="rgba(245,166,35,.9)"/>' +
-        '<rect x="22" y="12" width="5" height="7" rx="1" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>' +
-        '<circle cx="4" cy="10" r="1.6" fill="rgba(0,245,255,.9)"/>' +
-        '<circle cx="34" cy="10" r="1.6" fill="rgba(0,245,255,.9)"/>' +
-        '<circle cx="4" cy="30" r="1.6" fill="rgba(0,245,255,.9)"/>' +
-        '<circle cx="34" cy="30" r="1.6" fill="rgba(0,245,255,.9)"/>' +
-        '<circle cx="29" cy="6.5" r="3.8" stroke="rgba(255,255,255,.52)" stroke-width="1.4"/>' +
-        '<circle cx="29" cy="6.5" r="1.6" fill="rgba(255,255,255,.72)"/>' +
-        '<path d="M8 5.5 L9.2 3 L10.4 5.5 L9.2 8 Z" fill="rgba(245,166,35,.92)"/>' +
+        '<rect x="3" y="37" width="32" height="2" rx="1" fill="white" opacity="0.15"/>' +
+        '<rect x="7" y="23" width="24" height="10" rx="2.5" fill="white" opacity="0.92"/>' +
+        '<rect x="7" y="17" width="24" height="8" rx="2.5" fill="white" opacity="0.75"/>' +
+        '<rect x="5" y="20" width="5" height="9" rx="2" fill="white" opacity="0.75"/>' +
+        '<rect x="28" y="20" width="5" height="9" rx="2" fill="white" opacity="0.75"/>' +
+        '<line x1="19" y1="23" x2="19" y2="33" stroke="#cc0000" stroke-width="1" opacity="0.6"/>' +
+        '<rect x="10" y="33" width="2.5" height="3.5" rx="1" fill="#cc0000"/>' +
+        '<rect x="25.5" y="33" width="2.5" height="3.5" rx="1" fill="#cc0000"/>' +
+        '<rect x="29" y="26" width="6" height="5" rx="1" fill="rgba(255,255,255,0.4)"/>' +
+        '<rect x="28" y="25" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>' +
+        '<rect x="33" y="19" width="1.5" height="6" fill="rgba(255,255,255,0.6)"/>' +
+        '<polygon points="31,19 35,19 34.2,13.5 31.8,13.5" fill="rgba(255,255,255,0.75)"/>' +
+        '<circle cx="10" cy="9" r="2" fill="#ff3333" opacity="0.9"/>' +
+        '<circle cx="6" cy="14" r="1.2" fill="#ff3333" opacity="0.6"/>' +
+        '<circle cx="15" cy="6" r="0.8" fill="#ff3333" opacity="0.7"/>' +
+        '<rect x="20" y="4" width="13" height="8" rx="2.5" fill="white" opacity="0.95"/>' +
+        '<text x="22.5" y="10" font-size="5.5" fill="#cc0000" font-family="Arial" font-weight="bold">AI</text>' +
       '</svg>' +
-      '<div class="hj-nring">AI</div>' +
+      '<div class="hj-nring" style="font-size:8px;letter-spacing:.3px;">أثاث AI</div>' +
     '</button>' +
 
     /* Widget panel */
