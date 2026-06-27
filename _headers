@@ -1,0 +1,10 @@
+/*
+  # Allow camera access from any origin (required for cross-platform camera)
+  Permissions-Policy: camera=*
+  # Required for SharedArrayBuffer and some camera APIs
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  # Prevent clickjacking
+  X-Frame-Options: SAMEORIGIN
+  # Force HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
